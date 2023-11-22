@@ -24,10 +24,11 @@
 
 template <typename... Types>
 class SimpleTable {
-public:
+private:
 	using array_string = std::array<std::string, sizeof...(Types)>;
 	using array_size_t = std::array<size_t, sizeof...(Types)>;
 
+public:
 	SimpleTable(std::ios_base::fmtflags flags = 0, int precision = 6) {
 		stream.setf(flags);
 		stream.precision(precision);
@@ -51,17 +52,17 @@ public:
 	[[nodiscard]] inline std::string get() const noexcept {
 		array_size_t widths = {};
 
-		auto compute_widths = [&](auto&&... value) -> void {
+		auto compute_width = [&](auto&&... value) -> void {
 			size_t index = 0, pos = 0;
 			((pos = (stream << value).tellp(), stream.seekp(0),
-				pos > widths[index] ? widths[index++] = pos : index++
+				pos > widths[index++] && (widths[index - 1] = pos)
 			), ...);
 		};
 
-		auto apply_compute_widths = [&](auto&& value) -> void {
+		auto apply_compute_width = [&](auto&& value) -> void {
 			using value_t = std::decay_t<decltype(value)>;
 			if constexpr (!std::is_same_v<value_t, std::monostate>) {
-				std::apply(compute_widths, value);
+				std::apply(compute_width, value);
 			}
 		};
 		
@@ -70,8 +71,9 @@ public:
 		auto streamify_row = [&](auto&&... value) -> void {
 			size_t index = 0;
 			stream << separator << padding;
-			((stream << std::setw(widths[index++]) << value << padding <<
-				separator << (index == sizeof...(Types) ? "\n" : padding)
+			((stream << std::setw(widths[index++]) <<
+				value << padding << separator <<
+				(index == sizeof...(Types) ? "\n" : padding)
 			), ...);
 		};
 
@@ -90,7 +92,7 @@ public:
 
 		stream.str({});
 
-		for (auto& row : rows) std::visit(apply_compute_widths, row);
+		for (auto& row : rows) std::visit(apply_compute_width, row);
 		
 		apply_streamify_row(std::monostate());
 		for (auto& row : rows) std::visit(apply_streamify_row, row);
