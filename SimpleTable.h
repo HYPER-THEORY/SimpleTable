@@ -22,14 +22,16 @@
 #include <variant>
 #include <vector>
 
+namespace Simple {
+
 template <typename... Types>
-class SimpleTable {
+class Table {
 private:
 	using array_string = std::array<std::string, sizeof...(Types)>;
 	using array_size_t = std::array<size_t, sizeof...(Types)>;
 
 public:
-	SimpleTable(std::ios_base::fmtflags flags = 0, int precision = 6) {
+	explicit Table(std::ios_base::fmtflags flags = 0, int precision = 6) {
 		stream.setf(flags);
 		stream.precision(precision);
 	}
@@ -41,8 +43,8 @@ public:
 		rows.emplace_back(array_string{std::forward<StringTypes>(row)...});
 	}
 
-	inline void add(Types&&... row) noexcept {
-		rows.emplace_back(std::forward_as_tuple(row...));
+	inline void add(Types... row) noexcept {
+		rows.emplace_back(std::forward_as_tuple(std::move(row)...));
 	}
 
 	inline void add() noexcept {
@@ -105,3 +107,5 @@ private:
 	mutable std::ostringstream stream;
 	std::vector<std::variant<array_string, std::tuple<Types...>, std::monostate>> rows;
 };
+
+}
